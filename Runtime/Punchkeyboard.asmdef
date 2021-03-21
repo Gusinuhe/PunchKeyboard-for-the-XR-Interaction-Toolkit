@@ -1,0 +1,21 @@
+{
+    "name": "Punchkeyboard",
+    "references": [],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [
+        "XR_INTERACTION_TOOLKIT"
+    ],
+    "versionDefines": [
+        {
+            "name": "com.unity.xr.interaction.toolkit",
+            "expression": "1.0.0-pre.3",
+            "define": "XR_INTERACTION_TOOLKIT"
+        }
+    ],
+    "noEngineReferences": false
+}

@@ -1,0 +1,25 @@
+{
+  "name": "com.angus.punchkeyboard",
+  "version": "1.0.0",
+  "displayName": "PunchKeyboard",
+  "description": "Punchkeyboard is an open-source keyboard for virtual reality, enhanced with autocomplete and next word prediction functionality for a swift typing experience.",
+  "unity": "2019.4",
+  "dependencies": {
+    "com.unity.xr.interaction.toolkit": "1.0.0-pre.3"
+  },
+  "author": {
+    "name": "Gustavo Quiroz",
+    "email": "gusinuhe@gmail.com",
+    "url": "https://github.com/Gusinuhe"
+  },
+  "keywords": [
+    "open-source",
+    "open source",
+    "virtual keyboard",
+    "virtual",
+    "punch",
+    "keyboard",
+    "VR",
+    "XR"
+  ]
+}
