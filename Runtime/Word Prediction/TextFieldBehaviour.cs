@@ -1,22 +1,23 @@
 ﻿using UnityEngine;
-using UnityEngine.Events;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using System.Collections;
 using System.Linq;
-//using WindowsInput;
-//using NewtonVR;
 
 public class TextFieldBehaviour : MonoBehaviour, ISelectHandler
 {
-	public NGramGenerator NGramHandler;
-	//public NVRButton Space;
-
+	[SerializeField]
 	private InputField inputField;
-
-	void Start()
+	
+	private NGramGenerator nGramGenerator;
+	
+	private void Start()
 	{
-		inputField = gameObject.GetComponent<InputField>();
+		if (inputField == null)
+			inputField = GetComponent<InputField>();
+		
+		PunchKeyboardSettings settings = PunchKeyboardSettings.Load();
+		nGramGenerator = settings.NGramGenerator;
 	}
 
 	public void OnSelect(BaseEventData eventData)
@@ -55,7 +56,9 @@ public class TextFieldBehaviour : MonoBehaviour, ISelectHandler
 		{
 			string inputText = inputField.text.TrimEnd();
 			string lastWord = inputText.Split(' ').Last ();
-			NGramHandler.PredictNextWords(lastWord);
+			
+			//TODO fix
+			//nGramGenerator.PredictNextWords(lastWord, null);
 		}
 	}
 }
