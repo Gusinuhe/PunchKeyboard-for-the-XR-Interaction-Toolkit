@@ -1,7 +1,5 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
-//using UnityEditor;
 using System.Text;
 using System.Linq;
 using System.IO;
@@ -9,158 +7,99 @@ using System;
 using UnityEngine.UI;
 using System.Text.RegularExpressions;
 
-public class NGramGenerator : MonoBehaviour
+public class NGramGenerator
 {
-	public Text[] ButtonLabels;
-	public List<string> LevenshteinCorpus = new List<string>();
+	private List<string> levenshteinCorpus;
+	private readonly List<string> biGramPredictionCorpus = new List<string>();
+	private Dictionary<string, int> biGramDictionary = new Dictionary<string, int>();
+	private Dictionary<string, int> levenshteinDictionary = new Dictionary<string, int>();
 
-	private Dictionary<string, int> biGramDict = new Dictionary<string, int>();
-	private Dictionary<string, int> levenshteinDict = new Dictionary<string, int>();
-	private List<string> biGramPredictionCorpus = new List<string>();
+	public List<string> LevenshteinCorpus => levenshteinCorpus;
 
-
-	private void Awake()
+	public NGramGenerator(string biGramDictionaryPath, string levenshteinDictionaryPath)
 	{
-		// Uncomment this when working in the Unity Editor or with new dictionaries
-		/*
-		string directoryPath = Application.dataPath + "/Resources/WordPrediction";
-		if(!Directory.Exists(directoryPath))
-		{    
-			Directory.CreateDirectory(directoryPath);
+		if (string.IsNullOrEmpty(biGramDictionaryPath))
+			throw new ArgumentNullException(biGramDictionaryPath);
+		
+		if (string.IsNullOrEmpty(levenshteinDictionaryPath))
+			throw new ArgumentNullException(levenshteinDictionaryPath);
+
+		biGramDictionary = LoadDictionary(biGramDictionaryPath);
+		levenshteinDictionary = LoadDictionary(levenshteinDictionaryPath);
+
+		GenerateLevenshteinCorpus();
+	}
+	
+	public void PredictNextWords(string input, AutocompleterInteractable[] autocompleters)
+	{
+		foreach(KeyValuePair<string, int> kvp in biGramDictionary)
+		{
+			if(kvp.Key.Contains(input.ToLower() + " "))
+				biGramPredictionCorpus.Add(kvp.Key.Split(' ')[1]);
 		}
 
-		if(!File.Exists(directoryPath + "/biGramDict.txt") || !File.Exists(directoryPath + "/levenshteinDict.txt"))
+		if(biGramPredictionCorpus.Count < autocompleters.Length)
 		{
-			Debug.Log("No dictionaries found, building a new one. This can take a while depending on the corpus size.");
-			var loadedCorpus = Resources.Load ("Sample") as TextAsset;
-			string stringsCorpus = loadedCorpus.ToString ();
-
-			GenerateBiGrams(stringsCorpus);
-			GenerateLevenshteinDict(stringsCorpus);
-
-			LevenshteinCorpus = levenshteinDict.Keys.ToList();
-			Debug.Log("Dictionaries were succesfully generated.");
+			for(int i = 0; i < biGramPredictionCorpus.Count; i++)
+				autocompleters[i].SetText(biGramPredictionCorpus[i]);
+		
+			for(int i = biGramPredictionCorpus.Count; i < autocompleters.Length; i++)
+				//Don't forget to filter repeating stuff like "to" "to" etc.
+				autocompleters[i].SetText(levenshteinCorpus[i - biGramPredictionCorpus.Count]);
 		}
 		else
 		{
-			Debug.Log("Dictionaries found, word prediction is running.");
-			biGramDict = LoadDictionary("WordPrediction/biGramDict");
-			levenshteinDict = LoadDictionary("WordPrediction/levenshteinDict");
-
-			LevenshteinCorpus = levenshteinDict.Keys.ToList();
+			for(int i = 0; i < autocompleters.Length; i++)
+				autocompleters[i].SetText(biGramPredictionCorpus[i]);
 		}
-		*/
-
-		biGramDict = LoadDictionary("WordPrediction/biGramDict");
-		levenshteinDict = LoadDictionary("WordPrediction/levenshteinDict");
-
-		LevenshteinCorpus = levenshteinDict.Keys.ToList();
+		
+		biGramPredictionCorpus.Clear();
 	}
 
-	private Dictionary<string, int> OrderDictionary(string filePath)
+	internal string GenerateBiGrams(string corpus)
 	{
-		var loadedDict = Resources.Load (filePath) as TextAsset;
-		string stringDict = loadedDict.ToString ();
-		var dict = GetDict(stringDict);
-		var orderedEnum = from entry in dict orderby entry.Value descending select entry;
-		var orderedDict = orderedEnum.ToDictionary(pair => pair.Key, pair => pair.Value);
+		string[] nGrams = MakeNGrams(corpus, 2).ToArray();
 
-		return orderedDict;
-	}
-
-	private Dictionary<string, int> LoadDictionary(string filePath)
-	{
-		var loadedDict = Resources.Load (filePath) as TextAsset;
-		string stringDict = loadedDict.ToString ();
-		var dict = GetDict(stringDict);
-
-		return dict;
-	}
-
-	private void GenerateBiGrams(string corpus)
-	{
-		var nGrams = MakeNgrams(corpus, 2);
-
-		for(int i = 0; i < nGrams.Count(); i++)
+		for(int i = 0; i < nGrams.Length; i++)
 		{
-			if (biGramDict.ContainsKey(nGrams.ElementAt(i)))
-			{
-				biGramDict[nGrams.ElementAt(i)] += 1;
-			}
+			if (biGramDictionary.ContainsKey(nGrams.ElementAt(i)))
+				biGramDictionary[nGrams.ElementAt(i)] += 1;
 			else
-			{
-				biGramDict.Add(nGrams.ElementAt(i), 1);
-			}
+				biGramDictionary.Add(nGrams.ElementAt(i), 1);
 		}
-		var orderedEnum = from entry in biGramDict orderby entry.Value descending select entry;
-		biGramDict = orderedEnum.ToDictionary(pair => pair.Key, pair => pair.Value);
+		
+		IOrderedEnumerable<KeyValuePair<string, int>> orderedEnum = from entry in biGramDictionary orderby entry.Value descending select entry;
+		biGramDictionary = orderedEnum.ToDictionary(pair => pair.Key, pair => pair.Value);
 
-		string s = GetLine(biGramDict);
-		File.WriteAllText(Application.dataPath + "/Resources/AutoCorrect/biGramDict.txt", s);
-
-//		#if UNITY_EDITOR
-//			AssetDatabase.Refresh();
-//		#endif
+		return GetDictionaryContent(biGramDictionary);
 	}
 
-	private void GenerateLevenshteinDict(string corpus)
+	internal string GenerateLevenshteinDictionary(string corpus)
 	{
-		var wordPattern = new Regex("[\\w']+");
+		Regex wordPattern = new Regex("[\\w']+");
 
 		foreach (Match match in wordPattern.Matches(corpus))
 		{
-			int currentCount=0;
-			levenshteinDict.TryGetValue(match.Value, out currentCount);
+			int currentCount;
+			levenshteinDictionary.TryGetValue(match.Value, out currentCount);
 
 			currentCount++;
-			levenshteinDict[match.Value] = currentCount;
+			levenshteinDictionary[match.Value] = currentCount;
 		}
-		var orderedEnum = from entry in levenshteinDict orderby entry.Value descending select entry;
-		levenshteinDict = orderedEnum.ToDictionary(pair => pair.Key, pair => pair.Value);
+		
+		IOrderedEnumerable<KeyValuePair<string, int>> orderedEnum = from entry in levenshteinDictionary orderby entry.Value descending select entry;
+		levenshteinDictionary = orderedEnum.ToDictionary(pair => pair.Key, pair => pair.Value);
 
-		string s = GetLine(levenshteinDict);
-		File.WriteAllText(Application.dataPath + "/Resources/AutoCorrect/levenshteinDict.txt", s);
-
-//		#if UNITY_EDITOR
-//			AssetDatabase.Refresh();
-//		#endif
+		return GetDictionaryContent(levenshteinDictionary);
 	}
-
-	public void PredictNextWords(string input)
+	
+	internal void GenerateLevenshteinCorpus()
 	{
-		foreach(KeyValuePair<string, int> kvp in biGramDict)
-		{
-			if(kvp.Key.Contains(input.ToLower() + " "))
-			{
-				biGramPredictionCorpus.Add(kvp.Key.Split(' ')[1]);
-			}
-		}
-
-		if(biGramPredictionCorpus.Count < ButtonLabels.Length)
-		{
-			for(int i = 0; i < biGramPredictionCorpus.Count; i++)
-			{
-				ButtonLabels[i].text = biGramPredictionCorpus[i];
-			}
-			for(int i = biGramPredictionCorpus.Count; i < ButtonLabels.Length; i++)
-			{
-				//Don't forget to filter repeating stuff like "to" "to" etc.
-				ButtonLabels[i].text = LevenshteinCorpus[i - biGramPredictionCorpus.Count];
-			}
-		}
-		else
-		{
-			for(int i = 0; i < ButtonLabels.Length; i++)
-			{
-				ButtonLabels[i].text = biGramPredictionCorpus[i];
-			}
-		}
-		biGramPredictionCorpus.Clear();
-
+		levenshteinCorpus = levenshteinDictionary.Keys.ToList();
 	}
 
 	// N-gram creator by Jake Drew bit.ly/N-grams
-	public IEnumerable<string> MakeNgrams(string text, byte nGramSize)
+	private IEnumerable<string> MakeNGrams(string text, byte nGramSize)
 	{
 		StringBuilder nGram = new StringBuilder();
 		Queue<int> wordLengths = new Queue<int>();
@@ -202,38 +141,62 @@ public class NGramGenerator : MonoBehaviour
 			}
 		}
 	}
+	
+	private Dictionary<string, int> OrderDictionary(string filePath)
+	{
+		TextAsset dictionaryFile = Resources.Load (filePath) as TextAsset;
+		
+		if (dictionaryFile == null)
+			throw new FileNotFoundException($"No text file found at:\n{filePath}");
+		
+		string rawDictionary = dictionaryFile.ToString();
+		Dictionary<string, int> dictionary = GetDictionary(rawDictionary);
+		IOrderedEnumerable<KeyValuePair<string, int>> orderedEnum = from entry in dictionary orderby entry.Value descending select entry;
+		
+		return orderedEnum.ToDictionary(pair => pair.Key, pair => pair.Value);
+	}
 
-	string GetLine(Dictionary<string, int> d)
+	private Dictionary<string, int> LoadDictionary(string filePath)
+	{
+		TextAsset dictionaryFile = Resources.Load (filePath) as TextAsset;
+		
+		if (dictionaryFile == null)
+			throw new FileNotFoundException($"No text file found at:\n{filePath}");
+		
+		string rawDictionary = dictionaryFile.ToString();
+		return GetDictionary(rawDictionary);
+	}
+
+	private string GetDictionaryContent(Dictionary<string, int> dictionary)
 	{
 		StringBuilder builder = new StringBuilder();
-		foreach (KeyValuePair<string, int> pair in d)
-		{
+		foreach (KeyValuePair<string, int> pair in dictionary)
 			builder.Append(pair.Key).Append(":").Append(pair.Value).Append(',');
-		}
+		
 		string result = builder.ToString();
 		result = result.TrimEnd(',');
+		
 		return result;
 	}
 
-	Dictionary<string, int> GetDict(string s)
+	Dictionary<string, int> GetDictionary(string dictionaryContent)
 	{
-		Dictionary<string, int> d = new Dictionary<string, int>();
-		string[] tokens = s.Split(new char[] { ':', ',' }, StringSplitOptions.RemoveEmptyEntries);
+		Dictionary<string, int> dictionary = new Dictionary<string, int>();
+		string[] tokens = dictionaryContent.Split(new char[] { ':', ',' }, StringSplitOptions.RemoveEmptyEntries);
+		
 		for (int i = 0; i < tokens.Length; i += 2)
 		{
 			string name = tokens[i];
 			string freq = tokens[i + 1];
 
 			int count = int.Parse(freq);
-			if (d.ContainsKey(name))
-			{
-				d[name] += count;
-			}
+			
+			if (dictionary.ContainsKey(name))
+				dictionary[name] += count;
 			else
-			{
-				d.Add(name, count);
-			}
+				dictionary.Add(name, count);
 		}
-		return d;
+		
+		return dictionary;
 	}
 }

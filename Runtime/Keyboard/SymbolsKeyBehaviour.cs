@@ -13,7 +13,7 @@ public class SymbolsKeyBehaviour : MonoBehaviour
 
 	void Start()
 	{
-		Key.keyPressed += SpecialKeyPressed;
+		//Key.keyPresseds += SpecialKeyPressed;
 
 		symbolKeyController = this.gameObject.GetComponent<Key> ();
 		keys = GameObject.FindGameObjectsWithTag ("Key");
@@ -24,31 +24,31 @@ public class SymbolsKeyBehaviour : MonoBehaviour
 		}
 	}
 
-	void SpecialKeyPressed()
-	{
-		if (symbolKeyController.KeyPressed)
-		{
-			for (int i = 0; i < keyControllers.Length; i++)
-			{
-				keyControllers [i].SwitchToSymbols ();
-			}
-			if (symbolToggle)
-			{
-				ShiftBehaviour.ShiftVisibilityToggle (false);
-				symbolKeyController.KeycapColor = symbolKeyController.PressedKeycapColor;
-				symbolToggle = false;
-			}
-			else if (!symbolToggle)
-			{
-				ShiftBehaviour.ShiftVisibilityToggle (true);
-				symbolKeyController.KeycapColor = symbolKeyController.InitialKeycapColor;
-				symbolToggle = true;
-			}
-		}
-	}
-
-	void OnDisable()
-	{
-		Key.keyPressed -= SpecialKeyPressed;
-	}
+	// void SpecialKeyPressed()
+	// {
+	// 	if (symbolKeyController.KeyPressed)
+	// 	{
+	// 		for (int i = 0; i < keyControllers.Length; i++)
+	// 		{
+	// 			keyControllers [i].SwitchToSymbols ();
+	// 		}
+	// 		if (symbolToggle)
+	// 		{
+	// 			ShiftBehaviour.ShiftVisibilityToggle (false);
+	// 			symbolKeyController.KeycapColor = symbolKeyController.PressedKeycapColor;
+	// 			symbolToggle = false;
+	// 		}
+	// 		else if (!symbolToggle)
+	// 		{
+	// 			ShiftBehaviour.ShiftVisibilityToggle (true);
+	// 			symbolKeyController.KeycapColor = symbolKeyController.InitialKeycapColor;
+	// 			symbolToggle = true;
+	// 		}
+	// 	}
+	// }
+	//
+	// void OnDisable()
+	// {
+	// 	Key.keyPresseds -= SpecialKeyPressed;
+	// }
 }

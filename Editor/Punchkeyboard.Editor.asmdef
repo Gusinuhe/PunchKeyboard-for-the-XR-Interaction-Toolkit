@@ -1,0 +1,17 @@
+{
+    "name": "Punchkeyboard.Editor",
+    "references": [
+        "GUID:f39f9f80a37284f6b80d2e9d69b394ee"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
